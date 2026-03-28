@@ -1,0 +1,42 @@
+name: smarthome
+description: User app for the 2red2blue home automation daemon.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # HTTP + auth
+  dio: ^5.4.3
+  flutter_secure_storage: ^10.0.0
+
+  # Navigation
+  go_router: ^13.2.0
+
+  # SSE (Server-Sent Events)
+
+  # Local notifications (power cut / command alerts)
+  flutter_local_notifications: ^17.0.0
+
+  # Date formatting for Activity screen
+  intl: ^0.19.0
+  shared_preferences: ^2.5.4
+  web_socket_channel: ^3.0.3
+  http: ^1.6.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
