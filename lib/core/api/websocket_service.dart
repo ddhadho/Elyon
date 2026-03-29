@@ -37,7 +37,7 @@ class WebSocketService {
   void _connect() async {
     final url = await AppConfig.getDaemonUrl();
     if (url == null) return;
-    final wsUrl = url.replaceFirst('http', 'ws') + '/ws';
+    final wsUrl = '${url.replaceFirst('http', 'ws')}/ws';
     try {
       _channel = WebSocketChannel.connect(Uri.parse(wsUrl));
       _channel!.stream.listen(

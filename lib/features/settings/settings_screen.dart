@@ -31,7 +31,7 @@ class SettingsScreen extends StatelessWidget {
           const _SettingsTile(
             icon: Icons.info_outline_rounded,
             title: '2red2blue daemon',
-            subtitle: 'Kaya v1.0.0',
+            subtitle: 'Smarthome v1.0.0',
           ),
         ],
       ),

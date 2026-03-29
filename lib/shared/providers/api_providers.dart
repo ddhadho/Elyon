@@ -96,24 +96,33 @@ class CommandNotifier extends AsyncNotifier<String?> {
       );
       final commandId = res['command_id'] as String;
 
-      // Poll GET /commands every 500ms until confirmed or failed (max 15s)
+      // Poll GET /commands every 500ms until confirmed or failed (max 15s).
+      // Daemon keeps command in list with status "Sent" while in progress.
+      // Command disappears from list = confirmed.
+      // status "Failed" = failed after retries.
       for (int i = 0; i < 30; i++) {
         await Future.delayed(const Duration(milliseconds: 500));
         final cmds = await ApiClient.instance.getCommands();
-        final cmd = cmds.cast<Map<String, dynamic>>().where(
-              (c) => c['id'] == commandId,
-            );
-        if (cmd.isEmpty) {
-          // Removed from list = confirmed
+        final matches = cmds
+            .cast<Map<String, dynamic>>()
+            .where((c) => c['id'] == commandId)
+            .toList();
+
+        if (matches.isEmpty) {
+          // Gone from list — confirmed
           state = AsyncValue.data(commandId);
           return true;
         }
-        if (cmd.first['status'] == 'Failed') {
+
+        final status = matches.first['status'] as String? ?? '';
+        if (status == 'Failed') {
           state = AsyncValue.error('Command failed', StackTrace.current);
           return false;
         }
+        // status == 'Sent' — still in progress, keep polling
       }
-      state = AsyncValue.error('Command timed out', StackTrace.current);
+
+      state = AsyncValue.error('Command timed out after 15s', StackTrace.current);
       return false;
     } on Exception catch (e, st) {
       state = AsyncValue.error(e, st);

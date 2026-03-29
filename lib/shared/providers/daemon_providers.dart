@@ -11,6 +11,6 @@ final connectionStatusProvider = Provider<ConnectionStatus>((ref) {
   return state.when(
     data:    (_)    => ConnectionStatus.connected,
     loading: ()     => ConnectionStatus.connecting,
-    error:   (_, __) => ConnectionStatus.disconnected,
+    error:   (_, _) => ConnectionStatus.disconnected,
   );
 });
