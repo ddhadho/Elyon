@@ -85,7 +85,7 @@ class HomeScreen extends ConsumerWidget {
                         crossAxisCount:   2,
                         crossAxisSpacing: 12,
                         mainAxisSpacing:  12,
-                        childAspectRatio: 1.1,
+                        childAspectRatio: 1.8,
                       ),
                     ),
                   ),

@@ -6,90 +6,132 @@ import 'package:smarthome/shared/providers/api_providers.dart';
 import 'package:smarthome/shared/theme/app_theme.dart';
 
 class DeviceCard extends ConsumerWidget {
-  final Device      device;
-  final DeviceState? state; // null if daemon hasn't reported yet
+  final Device       device;
+  final DeviceState? state;
 
   const DeviceCard({super.key, required this.device, this.state});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final effectiveValue = state?.getEffective('state') ?? '—';
+    final effectiveValue = _effectiveValue();
     final isSafeDefault  = state?.isSafeDefaultActive ?? false;
-    final isActive       = effectiveValue == 'on' ||
-                           effectiveValue == 'locked' ||
+    final isActive       = effectiveValue == 'on'     ||
+                           effectiveValue == 'locked'  ||
                            effectiveValue == 'kplc';
+    final pill           = _statePill(effectiveValue);
 
     return GestureDetector(
       onTap: () => _showDetailSheet(context, ref, effectiveValue),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isActive
-                ? AppColors.orange.withOpacity(0.5)
-                : const Color(0xFF2A3A5C),
-          ),
           color: isActive
               ? AppColors.orange.withOpacity(0.07)
               : AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isActive
+                ? AppColors.orange.withOpacity(0.4)
+                : const Color(0xFF2A3A5C),
+          ),
         ),
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            // Icon + confidence dot
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _IconChip(icon: device.icon, active: isActive),
-                const Spacer(),
-                if (state != null)
-                  _ConfidenceDot(value: state!.confidence.value),
-              ],
-            ),
-            const Spacer(),
-            // Name
-            Text(
-              device.name,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
+            // Icon chip
+            Container(
+              width: 42, height: 42,
+              decoration: BoxDecoration(
+                color: isActive
+                    ? AppColors.orange.withOpacity(0.15)
+                    : AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(10),
               ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 2),
-            // State
-            Text(
-              effectiveValue.toUpperCase(),
-              style: TextStyle(
-                color: isActive ? AppColors.orange : AppColors.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
+              child: Center(
+                child: Text(device.icon,
+                    style: const TextStyle(fontSize: 20)),
               ),
             ),
-            // Safe default warning
-            if (isSafeDefault) ...[
-              const SizedBox(height: 4),
-              const Row(
+            const SizedBox(width: 10),
+            // Name + state
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.warning_amber_rounded, size: 10, color: AppColors.red),
-                  SizedBox(width: 3),
-                  Text('Safe default',
-                      style: TextStyle(color: AppColors.red, fontSize: 9)),
+                  Text(
+                    device.name,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        width: 5, height: 5,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: pill.color,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(
+                          pill.text,
+                          style: TextStyle(
+                            color: pill.color,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (isSafeDefault) ...[
+                        const SizedBox(width: 4),
+                        const Icon(Icons.warning_amber_rounded,
+                            size: 10, color: AppColors.red),
+                      ],
+                    ],
+                  ),
                 ],
               ),
-            ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  void _showDetailSheet(BuildContext context, WidgetRef ref, String currentValue) {
+  String _effectiveValue() {
+    if (state == null) return '—';
+    final v = state!.getEffective('state');
+    if (v != '—') return v;
+    if (state!.actual.isNotEmpty) {
+      return state!.getEffective(state!.actual.keys.first);
+    }
+    return '—';
+  }
+
+  ({String text, Color color}) _statePill(String value) =>
+      switch (value) {
+        'locked'   => (text: 'Locked',     color: AppColors.green),
+        'unlocked' => (text: 'Unlocked',   color: AppColors.yellow),
+        'on'       => (text: 'Running',    color: AppColors.green),
+        'off'      => (text: 'Stopped',    color: AppColors.textMuted),
+        'kplc'     => (text: 'Grid power', color: AppColors.green),
+        'outage'   => (text: 'Power out',  color: AppColors.red),
+        '—'        => (text: 'Unknown',    color: AppColors.textMuted),
+        _          => (text: value,        color: AppColors.textSecondary),
+      };
+
+  void _showDetailSheet(
+      BuildContext context, WidgetRef ref, String currentValue) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -106,11 +148,13 @@ class DeviceCard extends ConsumerWidget {
   }
 }
 
+// ── Detail bottom sheet ────────────────────────────────────────────────────
+
 class _DetailSheet extends StatelessWidget {
-  final Device      device;
+  final Device       device;
   final DeviceState? state;
-  final String      currentValue;
-  final WidgetRef   ref;
+  final String       currentValue;
+  final WidgetRef    ref;
 
   const _DetailSheet({
     required this.device,
@@ -138,7 +182,6 @@ class _DetailSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Handle bar
           Center(
             child: Container(
               width: 36, height: 4,
@@ -149,8 +192,6 @@ class _DetailSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-
-          // Header
           Row(
             children: [
               Text(device.icon, style: const TextStyle(fontSize: 32)),
@@ -171,23 +212,44 @@ class _DetailSheet extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 24),
-
-          // Details
-          _DetailRow('State',      currentValue.toUpperCase()),
+          _DetailRow('State', currentValue),
           if (state != null) ...[
-            _DetailRow('Confidence', '${(state!.confidence.value * 100).toStringAsFixed(0)}%'),
-            _DetailRow('Last seen',  _timeSince(state!.lastSeen)),
+            _DetailRow('Confidence',
+                '${(state!.confidence.value * 100).toStringAsFixed(0)}%'),
+            _DetailRow('Last seen', _timeSince(state!.lastSeen)),
+          ],
+          if (state?.isSafeDefaultActive ?? false) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.red.withOpacity(0.3)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      size: 14, color: AppColors.red),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'System acting on safe default — confidence too low',
+                      style: TextStyle(color: AppColors.red, fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
           if (!device.writable)
             const Padding(
-              padding: EdgeInsets.only(top: 8),
+              padding: EdgeInsets.only(top: 12),
               child: Text('Read-only device',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  style:
+                      TextStyle(color: AppColors.textMuted, fontSize: 12)),
             ),
-
-          // Toggle button
           if (device.writable && nextValue != null) ...[
             const SizedBox(height: 24),
             SizedBox(
@@ -208,7 +270,8 @@ class _DetailSheet extends StatelessWidget {
                           if (!ok) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Command failed — check daemon connection'),
+                                content: Text(
+                                    'Command failed — check daemon connection'),
                                 backgroundColor: AppColors.red,
                               ),
                             );
@@ -227,11 +290,9 @@ class _DetailSheet extends StatelessWidget {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : Text(
-                        'Set to ${nextValue.toUpperCase()}',
+                    : Text('Set to ${nextValue.toUpperCase()}',
                         style: const TextStyle(
-                            fontWeight: FontWeight.w600, fontSize: 15),
-                      ),
+                            fontWeight: FontWeight.w600, fontSize: 15)),
               ),
             ),
           ],
@@ -269,44 +330,6 @@ class _DetailRow extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w600)),
         ],
-      ),
-    );
-  }
-}
-
-class _IconChip extends StatelessWidget {
-  final String icon;
-  final bool   active;
-  const _IconChip({required this.icon, required this.active});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 40, height: 40,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        color: active
-            ? AppColors.orange.withOpacity(0.18)
-            : AppColors.surfaceAlt,
-      ),
-      child: Center(
-        child: Text(icon, style: const TextStyle(fontSize: 20)),
-      ),
-    );
-  }
-}
-
-class _ConfidenceDot extends StatelessWidget {
-  final double value;
-  const _ConfidenceDot({required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 8, height: 8,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.confidenceColor(value),
       ),
     );
   }
