@@ -18,31 +18,52 @@ class EventSummary {
   });
 
   /// Human-readable translation for the Activity screen.
-  /// Never show raw kind strings to the tenant.
+  /// Source format from daemon: "device:main_gate", "Rule(rule_001)", "User"
   String get humanReadable {
-    if (kind == 'DeviceStateChanged' && deviceId == 'mains_power') {
-      return value == 'outage' ? 'Power cut detected' : 'Power restored';
+    final dev = deviceId ?? 'device';
+    final val = value ?? '';
+
+    if (kind == 'DeviceStateChanged') {
+      if (deviceId == 'mains_power') {
+        return val == 'outage' ? 'Power cut detected' : 'Power restored';
+      }
+      final who = _sourceLabel;
+      return '$dev → $val · $who';
     }
+
     if (kind == 'CommandConfirmed') {
-      final who = source.contains('Rule') ? 'automatic' : 'manual';
-      final dev = deviceId ?? 'device';
-      return '$dev → $value ($who)';
+      return '$dev → $val · ${_sourceLabel}';
     }
+
     if (kind == 'CommandFailed') {
-      return 'Command failed — ${deviceId ?? 'unknown device'}';
+      return 'Command failed — $dev';
     }
+
     if (kind == 'RuleConflict') return 'Conflicting rules resolved';
+
     return kind;
   }
 
-  /// Icon hint for the activity list tile
+  /// Translates raw source string to a readable label.
+  /// "device:main_gate" → "device"
+  /// "Rule(rule_001)"   → "automatic"
+  /// "User"             → "manual"
+  String get _sourceLabel {
+    if (source.startsWith('Rule')) return 'automatic';
+    if (source == 'User') return 'manual';
+    if (source.startsWith('device:')) return 'device';
+    return source;
+  }
+
   String get icon {
     if (kind == 'DeviceStateChanged' && deviceId == 'mains_power') {
       return value == 'outage' ? '⚡' : '✅';
     }
     if (kind == 'CommandConfirmed') return '✓';
-    if (kind == 'CommandFailed') return '✗';
-    if (kind == 'RuleConflict') return '⚠';
+    if (kind == 'CommandFailed')    return '✗';
+    if (kind == 'RuleConflict')     return '⚠';
+    if (value == 'locked' || value == 'on')     return '🔒';
+    if (value == 'unlocked' || value == 'off')  return '🔓';
     return '•';
   }
 
@@ -51,11 +72,11 @@ class EventSummary {
       timestamp: DateTime.fromMillisecondsSinceEpoch(
         (j['timestamp'] as num).toInt(),
       ),
-      kind: j['kind'] as String,
-      deviceId: j['device_id'] as String?,
+      kind:      j['kind']      as String,
+      deviceId:  j['device_id'] as String?,
       attribute: j['attribute'] as String?,
-      value: j['value'] as String?,
-      source: j['source'] as String? ?? '',
+      value:     j['value']     as String?,
+      source:    j['source']    as String? ?? '',
       commandId: j['command_id'] as String?,
     );
   }
