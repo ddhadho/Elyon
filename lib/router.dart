@@ -5,6 +5,7 @@ import 'features/home/home_screen.dart';
 import 'features/activity/activity_screen.dart';
 import 'features/rules/rules_screen.dart';
 import 'features/settings/settings_screen.dart';
+import 'features/discovery/discovery_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/home',
@@ -22,5 +23,6 @@ final router = GoRouter(
     GoRoute(path: '/activity', builder: (_, _) => const ActivityScreen()),
     GoRoute(path: '/rules',    builder: (_, _) => const RulesScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
+    GoRoute(path: '/discovery', builder: (_, __) => const DiscoveryScreen()),
   ],
 );
