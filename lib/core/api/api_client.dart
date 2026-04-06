@@ -17,7 +17,7 @@ class ApiClient {
     ..interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
-      logPrint: (o) => print('[Kaya HTTP] $o'),
+      logPrint: (o) => print('[Smarthome HTTP] $o'),
     ));
 
   // ── State ──────────────────────────────────────────────────────────────
@@ -101,6 +101,11 @@ class ApiClient {
   Future<List<dynamic>> getHaEntities() async {
     final r = await _get('/ha/entities');
     return r.data as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> postDevice(Map<String, dynamic> body) async {
+    final r = await _post('/devices', body);
+    return r.data as Map<String, dynamic>;
   }
 
   // ── Internals ──────────────────────────────────────────────────────────
