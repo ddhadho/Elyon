@@ -15,6 +15,12 @@ class SettingsScreen extends StatelessWidget {
         children: [
           const _SectionHeader('DAEMON'),
           _SettingsTile(
+            icon: Icons.search_rounded,
+            title: 'Device discovery',
+            subtitle: 'Browse HA entities and add them to devices.toml',
+            onTap: () => context.push('/discovery'),
+          ),
+          _SettingsTile(
             icon: Icons.router_rounded,
             title: 'Daemon connection',
             subtitle: 'Change the daemon address or access token',
@@ -95,9 +101,9 @@ class _SectionHeader extends StatelessWidget {
 
 class _SettingsTile extends StatelessWidget {
   final IconData icon;
-  final String title;
-  final String? subtitle;
-  final bool destructive;
+  final String   title;
+  final String?  subtitle;
+  final bool     destructive;
   final VoidCallback? onTap;
 
   const _SettingsTile({
@@ -110,11 +116,12 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = destructive ? AppColors.red : AppColors.textPrimary;
-    final iconColor = destructive ? AppColors.red : AppColors.blue;
+    final color     = destructive ? AppColors.red   : AppColors.textPrimary;
+    final iconColor = destructive ? AppColors.red   : AppColors.blue;
 
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       leading: Container(
         width: 36,
         height: 36,
@@ -126,11 +133,13 @@ class _SettingsTile extends StatelessWidget {
       ),
       title: Text(title,
           style: TextStyle(
-              color: color, fontSize: 14, fontWeight: FontWeight.w500)),
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w500)),
       subtitle: subtitle != null
           ? Text(subtitle!,
-              style:
-                  const TextStyle(color: AppColors.textMuted, fontSize: 12))
+              style: const TextStyle(
+                  color: AppColors.textMuted, fontSize: 12))
           : null,
       trailing: onTap != null
           ? const Icon(Icons.chevron_right_rounded,
