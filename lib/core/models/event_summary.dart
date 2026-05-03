@@ -32,7 +32,7 @@ class EventSummary {
     }
 
     if (kind == 'CommandConfirmed') {
-      return '$dev → $val · ${_sourceLabel}';
+      return '$dev → $val · $_sourceLabel';
     }
 
     if (kind == 'CommandFailed') {
