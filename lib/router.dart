@@ -23,6 +23,6 @@ final router = GoRouter(
     GoRoute(path: '/activity', builder: (_, _) => const ActivityScreen()),
     GoRoute(path: '/rules',    builder: (_, _) => const RulesScreen()),
     GoRoute(path: '/settings', builder: (_, _) => const SettingsScreen()),
-    GoRoute(path: '/discovery', builder: (_, __) => const DiscoveryScreen()),
+    GoRoute(path: '/discovery', builder: (_, _) => const DiscoveryScreen()),
   ],
 );
