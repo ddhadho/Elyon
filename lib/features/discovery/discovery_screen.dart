@@ -326,7 +326,7 @@ class _AddDeviceSheetState extends State<AddDeviceSheet> {
             _FieldLabel('Kind'),
             const SizedBox(height: 6),
             DropdownButtonFormField<String>(
-              value: _selectedKind,
+              initialValue: _selectedKind,
               dropdownColor: AppColors.surfaceAlt,
               style: const TextStyle(
                   color: AppColors.textPrimary, fontSize: 14),
@@ -423,7 +423,7 @@ class _AddDeviceSheetState extends State<AddDeviceSheet> {
                 Switch(
                   value: _writable,
                   onChanged: (v) => setState(() => _writable = v),
-                  activeColor: AppColors.blue,
+                  activeThumbColor: AppColors.blue,
                 ),
               ],
             ),

@@ -396,7 +396,7 @@ class _RuleEditorScreenState extends State<RuleEditorScreen> {
               Switch(
                 value: _enabled,
                 onChanged: (v) => setState(() => _enabled = v),
-                activeColor: AppColors.blue,
+                activeThumbColor: AppColors.blue,
               ),
             ],
           ),

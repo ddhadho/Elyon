@@ -133,7 +133,7 @@ class _RuleTile extends StatelessWidget {
               Switch(
                 value: rule.enabled,
                 onChanged: (_) => onToggle(),
-                activeColor: AppColors.blue,
+                activeThumbColor: AppColors.blue,
               ),
             ],
           ),
