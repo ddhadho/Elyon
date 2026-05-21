@@ -1,4 +1,4 @@
-# Smarthome
+# Elyon
 
 Flutter companion app for the [2red2blue](https://github.com/ddhadho/2red2blue) home automation daemon.
 
