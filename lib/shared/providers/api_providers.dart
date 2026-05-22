@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smarthome/core/api/api_client.dart';
-import 'package:smarthome/core/models/device_state.dart';
-import 'package:smarthome/core/models/device.dart';
-import 'package:smarthome/core/models/event_summary.dart';
-import 'package:smarthome/core/models/rule.dart';
+import 'package:elyon/core/api/api_client.dart';
+import 'package:elyon/core/models/device_state.dart';
+import 'package:elyon/core/models/device.dart';
+import 'package:elyon/core/models/event_summary.dart';
+import 'package:elyon/core/models/rule.dart';
 
 // ── Devices + State ────────────────────────────────────────────────────────
 

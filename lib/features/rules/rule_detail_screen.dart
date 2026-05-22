@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smarthome/shared/providers/api_providers.dart';
+import 'package:elyon/shared/providers/api_providers.dart';
 import '../../core/models/rule.dart';
 import '../../core/api/api_client.dart';
 import '../../shared/theme/app_theme.dart';

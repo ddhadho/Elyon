@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/config/app_config.dart';
-import 'package:smarthome/shared/providers/api_providers.dart';
+import 'package:elyon/shared/providers/api_providers.dart';
 import '../../shared/providers/sse_provider.dart';
 import '../../shared/theme/app_theme.dart';
 import 'widgets/device_card.dart';
@@ -22,7 +22,7 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: FutureBuilder<String?>(
           future: AppConfig.getOwnerName(),
-          builder: (context, snap) => Text(snap.data ?? 'smarthome'),
+          builder: (context, snap) => Text(snap.data ?? 'Elyon'),
         ),
         actions: [
           IconButton(

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smarthome/core/api/sse_service.dart';
+import 'package:elyon/core/api/sse_service.dart';
 import 'api_providers.dart';
 
 /// Subscribes to the SSE stream and invalidates the relevant providers

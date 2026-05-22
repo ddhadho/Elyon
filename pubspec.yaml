@@ -1,4 +1,4 @@
-name: smarthome
+name: elyon
 description: User app for the 2red2blue home automation daemon.
 publish_to: 'none'
 version: 1.0.0+1

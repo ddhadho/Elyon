@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smarthome/core/models/device.dart';
-import 'package:smarthome/core/models/device_state.dart';
-import 'package:smarthome/shared/providers/api_providers.dart';
-import 'package:smarthome/shared/theme/app_theme.dart';
+import 'package:elyon/core/models/device.dart';
+import 'package:elyon/core/models/device_state.dart';
+import 'package:elyon/shared/providers/api_providers.dart';
+import 'package:elyon/shared/theme/app_theme.dart';
 
 class DeviceCard extends ConsumerWidget {
   final Device       device;

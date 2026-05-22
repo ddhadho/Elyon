@@ -93,7 +93,7 @@ class _ConnectionScreenState extends State<ConnectionScreen> {
                         child: const Center(child: Text('⚡', style: TextStyle(fontSize: 28))),
                       ),
                       const SizedBox(height: 16),
-                      const Text('SmartHome',
+                      const Text('Elyon',
                           style: TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 28,
