@@ -7,15 +7,12 @@ import 'package:elyon/core/models/rule.dart';
 
 // ── Devices + State ────────────────────────────────────────────────────────
 
-/// All device states from GET /state. Auto-refreshes every 5 seconds
-/// as fallback until SSE is fully wired.
 final deviceStateProvider =
     FutureProvider.autoDispose<Map<String, DeviceState>>((ref) async {
   final json = await ApiClient.instance.getState();
   return DeviceState.mapFromJson(json);
 });
 
-/// Device metadata from GET /devices.
 final devicesProvider = FutureProvider.autoDispose<List<Device>>((ref) async {
   final json = await ApiClient.instance.getDevices();
   return Device.listFromJson(json);
@@ -23,7 +20,6 @@ final devicesProvider = FutureProvider.autoDispose<List<Device>>((ref) async {
 
 // ── Commands ───────────────────────────────────────────────────────────────
 
-/// Pending + recent commands from GET /commands.
 final commandsProvider =
     FutureProvider.autoDispose<List<dynamic>>((ref) async {
   return ApiClient.instance.getCommands();
@@ -31,14 +27,12 @@ final commandsProvider =
 
 // ── Events ─────────────────────────────────────────────────────────────────
 
-/// Event history from GET /events.
 final eventsProvider =
     FutureProvider.autoDispose<List<EventSummary>>((ref) async {
   final json = await ApiClient.instance.getEvents();
   return EventSummary.listFromJson(json);
 });
 
-/// Events filtered by device — for device detail screen.
 final deviceEventsProvider = FutureProvider.autoDispose
     .family<List<EventSummary>, String>((ref, deviceId) async {
   final json = await ApiClient.instance.getEvents(deviceId: deviceId);
@@ -77,7 +71,6 @@ final haEntitiesProvider =
 
 // ── Command posting ────────────────────────────────────────────────────────
 
-/// Notifier for posting a command and polling for confirmation.
 class CommandNotifier extends AsyncNotifier<String?> {
   @override
   Future<String?> build() async => null;
@@ -96,10 +89,6 @@ class CommandNotifier extends AsyncNotifier<String?> {
       );
       final commandId = res['command_id'] as String;
 
-      // Poll GET /commands every 500ms until confirmed or failed (max 15s).
-      // Daemon keeps command in list with status "Sent" while in progress.
-      // Command disappears from list = confirmed.
-      // status "Failed" = failed after retries.
       for (int i = 0; i < 30; i++) {
         await Future.delayed(const Duration(milliseconds: 500));
         final cmds = await ApiClient.instance.getCommands();
@@ -109,17 +98,21 @@ class CommandNotifier extends AsyncNotifier<String?> {
             .toList();
 
         if (matches.isEmpty) {
-          // Gone from list — confirmed
           state = AsyncValue.data(commandId);
+          // ── Immediately refresh state + events so UI updates
+          // without waiting for SSE (SSE will also fire, but this
+          // ensures instant feedback if SSE is slightly delayed).
+          ref.invalidate(deviceStateProvider);
+          ref.invalidate(eventsProvider);
           return true;
         }
 
         final status = matches.first['status'] as String? ?? '';
         if (status == 'Failed') {
           state = AsyncValue.error('Command failed', StackTrace.current);
+          ref.invalidate(eventsProvider); // show the failure in activity strip
           return false;
         }
-        // status == 'Sent' — still in progress, keep polling
       }
 
       state = AsyncValue.error('Command timed out after 15s', StackTrace.current);
