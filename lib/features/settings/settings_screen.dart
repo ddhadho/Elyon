@@ -45,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
           const _SettingsTile(
             icon: Icons.info_outline_rounded,
             title: '2red2blue daemon',
-            subtitle: 'Smarthome v1.0.0',
+            subtitle: 'Elyon v1.0.0',
           ),
         ],
       ),

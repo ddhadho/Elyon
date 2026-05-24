@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../core/config/app_config.dart';
 import 'package:elyon/shared/providers/api_providers.dart';
 import '../../shared/providers/sse_provider.dart';
@@ -16,18 +17,20 @@ class HomeScreen extends ConsumerWidget {
 
     final stateAsync   = ref.watch(deviceStateProvider);
     final devicesAsync = ref.watch(devicesProvider);
-    ref.watch(eventsProvider);
+    final eventsAsync  = ref.watch(eventsProvider);
+
+    void onRefresh() {
+      ref.invalidate(deviceStateProvider);
+      ref.invalidate(devicesProvider);
+      ref.invalidate(eventsProvider);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: RefreshIndicator(
         color: AppColors.orange,
         backgroundColor: AppColors.surface,
-        onRefresh: () async {
-          ref.invalidate(deviceStateProvider);
-          ref.invalidate(devicesProvider);
-          ref.invalidate(eventsProvider);
-        },
+        onRefresh: () async => onRefresh(),
         child: devicesAsync.when(
           loading: () => const _LoadingGrid(),
           error:   (e, _) => _ErrorView(message: e.toString(), ref: ref),
@@ -35,8 +38,6 @@ class HomeScreen extends ConsumerWidget {
             loading: () => const _LoadingGrid(),
             error:   (e, _) => _ErrorView(message: e.toString(), ref: ref),
             data: (stateMap) {
-              if (devices.isEmpty) return const _EmptyState();
-
               final visible = devices
                   .where((d) => stateMap.containsKey(d.id))
                   .toList();
@@ -50,6 +51,31 @@ class HomeScreen extends ConsumerWidget {
                 return v == 'on' || v == 'locked' || v == 'kplc';
               }).length;
 
+              // Shared header — always visible
+              final header = _Header(
+                activeCount: activeCount,
+                safeDefaultCount: safeDefaultCount,
+                onRefresh: onRefresh,
+                onSettings: () => context.push('/settings'),
+              );
+
+              // Empty state — no devices configured yet
+              if (devices.isEmpty) {
+                return CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(
+                    parent: BouncingScrollPhysics(),
+                  ),
+                  slivers: [
+                    SliverToBoxAdapter(child: header),
+                    SliverFillRemaining(
+                      child: _EmptyState(
+                        onAddDevices: () => context.push('/discovery'),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
               return CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(
                   parent: BouncingScrollPhysics(),
@@ -57,22 +83,12 @@ class HomeScreen extends ConsumerWidget {
                 slivers: [
 
                   // ── Header
-                  SliverToBoxAdapter(
-                    child: _Header(
-                      activeCount: activeCount,
-                      safeDefaultCount: safeDefaultCount,
-                      onRefresh: () {
-                        ref.invalidate(deviceStateProvider);
-                        ref.invalidate(devicesProvider);
-                        ref.invalidate(eventsProvider);
-                      },
-                      onSettings: () => context.push('/settings'),
-                    ),
-                  ),
+                  SliverToBoxAdapter(child: header),
 
                   // ── Safe default banner
                   if (safeDefaultCount > 0)
                     SliverToBoxAdapter(
+                      child: _SafeDefaultBanner(count: safeDefaultCount),
                     ),
 
                   // ── Section label
@@ -113,7 +129,6 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  // ── Bottom padding so last card isn't hidden by activity strip
                   const SliverToBoxAdapter(child: SizedBox(height: 80)),
                 ],
               );
@@ -121,13 +136,10 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ),
-
-      // ── Bottom nav + activity strip stacked
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-
-          // Nav bar
+          _ActivityStrip(eventsAsync: eventsAsync, onTap: () => context.push('/activity')),
           NavigationBar(
             height: 60,
             destinations: const [
@@ -174,8 +186,6 @@ class _Header extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // ── Top row: home name + actions
             Row(
               children: [
                 Expanded(
@@ -213,15 +223,14 @@ class _Header extends ConsumerWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            // ── Summary chips
             Row(
               children: [
                 _SummaryChip(
                   label: '$activeCount active',
-                  color: activeCount > 0 ? AppColors.green : AppColors.textMuted,
+                  color: activeCount > 0
+                      ? AppColors.green
+                      : AppColors.textMuted,
                   bg: activeCount > 0
                       ? AppColors.green.withOpacity(0.1)
                       : AppColors.surfaceAlt,
@@ -236,7 +245,6 @@ class _Header extends ConsumerWidget {
                 ],
               ],
             ),
-
             const SizedBox(height: 4),
           ],
         ),
@@ -249,7 +257,8 @@ class _SummaryChip extends StatelessWidget {
   final String label;
   final Color color;
   final Color bg;
-  const _SummaryChip({required this.label, required this.color, required this.bg});
+  const _SummaryChip(
+      {required this.label, required this.color, required this.bg});
 
   @override
   Widget build(BuildContext context) {
@@ -259,15 +268,175 @@ class _SummaryChip extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
+      child: Text(label,
+          style: TextStyle(
+              color: color, fontSize: 11, fontWeight: FontWeight.w600)),
+    );
+  }
+}
+
+// ── Safe default banner ───────────────────────────────────────────────────────
+
+class _SafeDefaultBanner extends StatelessWidget {
+  final int count;
+  const _SafeDefaultBanner({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.yellow.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.yellow.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded,
+              size: 15, color: AppColors.yellow),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '$count device${count == 1 ? '' : 's'} acting on safe default',
+              style: TextStyle(
+                  color: AppColors.yellow,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Empty state ───────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onAddDevices;
+  const _EmptyState({required this.onAddDevices});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72, height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(Icons.home_outlined,
+                size: 36, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 16),
+          const Text('No devices configured',
+              style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          const Text('Add your first device to get started',
+              style: TextStyle(
+                  color: AppColors.textMuted, fontSize: 13)),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: onAddDevices,
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Add devices'),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.orange,
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Activity strip ────────────────────────────────────────────────────────────
+
+class _ActivityStrip extends StatelessWidget {
+  final AsyncValue eventsAsync;
+  final VoidCallback onTap;
+  const _ActivityStrip({required this.eventsAsync, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final events = eventsAsync.valueOrNull;
+    if (events == null || events.isEmpty) return const SizedBox.shrink();
+
+    final latest  = events.first;
+    final timeStr = _timeLabel(latest.timestamp);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          border: Border(
+            top: BorderSide(
+                color: const Color(0x12000000), width: 0.5),
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(latest.icon,
+                    style: const TextStyle(fontSize: 13)),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    latest.humanReadable,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(timeStr,
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 10)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded,
+                size: 16, color: AppColors.textMuted),
+          ],
         ),
       ),
     );
+  }
+
+  String _timeLabel(DateTime dt) {
+    final d = DateTime.now().difference(dt);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    return DateFormat('d MMM').format(dt);
   }
 }
 
@@ -291,33 +460,9 @@ class _LoadingGrid extends StatelessWidget {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
           color: AppColors.surface,
-          border: Border.all(color: const Color(0x12000000), width: 0.5),
+          border:
+              Border.all(color: const Color(0x12000000), width: 0.5),
         ),
-      ),
-    );
-  }
-}
-
-// ── Empty state ───────────────────────────────────────────────────────────────
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.home_outlined, size: 52, color: AppColors.textMuted),
-          const SizedBox(height: 12),
-          const Text('No devices configured',
-              style: TextStyle(color: AppColors.textSecondary)),
-          const SizedBox(height: 4),
-          Text('Add devices via devices.toml',
-              style: TextStyle(
-                  color: AppColors.textMuted.withOpacity(0.7), fontSize: 12)),
-        ],
       ),
     );
   }
@@ -338,11 +483,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.cloud_off_rounded, size: 48, color: AppColors.textMuted),
+            Icon(Icons.cloud_off_rounded,
+                size: 48, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text(message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary)),
+                style:
+                    const TextStyle(color: AppColors.textSecondary)),
             const SizedBox(height: 20),
             FilledButton.icon(
               onPressed: () {
